@@ -102,6 +102,11 @@ export default class MyMocPlugin extends Plugin {
 		if (!hasMarker(content, this.settings.marker)) return;
 		const parent = file.parent ?? this.app.vault.getRoot();
 		await this.rewrite(file, await this.collectEntries(parent));
+
+		// В MOC родительской папки эта папка числится строкой без ссылки, пока в ней
+		// нет своего MOC. Появление маркера — это `modify`, на который мы не подписаны,
+		// поэтому ставим папку уровнем выше в очередь сами.
+		this.queueParentOf(parent.path);
 	}
 
 	private async collectEntries(folder: TFolder): Promise<Entry[]> {
