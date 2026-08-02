@@ -40,6 +40,11 @@ to date like any other index.
 Folders are skipped when they already contain an index, when a file of that name exists,
 or when they hold nothing but attachments. Existing files are never overwritten.
 
+> **Try it on a small folder first.** Placed high in a vault, `%% MOC+ %%` can create
+> dozens of notes across unrelated projects in one go, and the only way back is deleting
+> them by hand. Run it on a throwaway folder with two or three subfolders, see the shape
+> it produces, then use it where you meant to.
+
 ### Writing *about* the marker
 
 Wrap it in backticks — `` `%% MOC:start %%

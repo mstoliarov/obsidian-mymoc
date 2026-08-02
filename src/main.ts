@@ -33,6 +33,13 @@ export default class MyMocPlugin extends Plugin {
 	 * so events are collected and processed in one pass.
 	 */
 	private pending = new Set<string>();
+	/**
+	 * The recursive pass is async and runs for seconds on a large tree. Without
+	 * this guard a second pass starts while the first is mid-flight, computes its
+	 * plan from state the first has not written yet, and calls create() on paths
+	 * that already exist.
+	 */
+	private recursing = false;
 	private flush = debounce(() => void this.processPending(), 400, true);
 
 	async onload() {
@@ -160,13 +167,22 @@ export default class MyMocPlugin extends Plugin {
 
 	/** Runs the recursive pass and tells the user what happened. */
 	private async recursiveThenReport(file: TFile) {
-		const { created, skipped } = await this.runRecursivePass(file);
-		new Notice(
-			created > 0
-				? `MyMOC: created ${created} index ${created === 1 ? 'note' : 'notes'}` +
-					(skipped > 0 ? `, skipped ${skipped}` : '')
-				: 'MyMOC: nothing to create — subfolders already have indexes or are empty',
-		);
+		if (this.recursing) return;
+		this.recursing = true;
+		try {
+			const { created, skipped, failed } = await this.runRecursivePass(file);
+			const parts = [];
+			if (created > 0) parts.push(`created ${created}`);
+			if (skipped > 0) parts.push(`skipped ${skipped}`);
+			if (failed > 0) parts.push(`failed ${failed}`);
+			new Notice(
+				parts.length > 0
+					? `MyMOC: ${parts.join(', ')}`
+					: 'MyMOC: nothing to create — subfolders already have indexes or are empty',
+			);
+		} finally {
+			this.recursing = false;
+		}
 	}
 
 	/**
@@ -174,7 +190,9 @@ export default class MyMocPlugin extends Plugin {
 	 * the note. Deepest folders go first, so by the time a parent index is built
 	 * its children already have indexes to link to.
 	 */
-	private async runRecursivePass(file: TFile): Promise<{ created: number; skipped: number }> {
+	private async runRecursivePass(
+		file: TFile,
+	): Promise<{ created: number; skipped: number; failed: number }> {
 		const parent = file.parent ?? this.app.vault.getRoot();
 		const nodes: FolderNode[] = [];
 
@@ -200,6 +218,7 @@ export default class MyMocPlugin extends Plugin {
 
 		const plan = planMocCreation(nodes, this.settings.createdPrefix);
 		let created = 0;
+		let failed = 0;
 		for (const item of [...plan].reverse()) {
 			const folder = this.app.vault.getAbstractFileByPath(item.folderPath);
 			if (!(folder instanceof TFolder)) continue;
@@ -214,10 +233,17 @@ export default class MyMocPlugin extends Plugin {
 				endMarker(this.settings.marker),
 				'',
 			].join('\n');
-			await this.app.vault.create(item.path, body);
-			created++;
+			// One unwritable path must not abort the rest of the pass, and the
+			// marker has to collapse afterwards either way — otherwise the same
+			// failure repeats on every subsequent event.
+			try {
+				await this.app.vault.create(item.path, body);
+				created++;
+			} catch {
+				failed++;
+			}
 		}
-		return { created, skipped: nodes.length - created };
+		return { created, skipped: nodes.length - plan.length, failed };
 	}
 
 	private async collectEntries(folder: TFolder): Promise<Entry[]> {
