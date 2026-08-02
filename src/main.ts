@@ -20,11 +20,11 @@ import {
 } from './buildIndex';
 
 export default class MyMocPlugin extends Plugin {
-	settings!: Settings; // присваивается в onload до любого использования
+	settings!: Settings; // assigned in onload before any use
 
 	/**
-	 * Папки, ожидающие пересборки. Syncthing приносит файлы пачками,
-	 * поэтому события копятся и обрабатываются одним заходом.
+	 * Folders awaiting a rebuild. File-sync tools deliver files in bursts,
+	 * so events are collected and processed in one pass.
 	 */
 	private pending = new Set<string>();
 	private flush = debounce(() => void this.processPending(), 400, true);
@@ -35,7 +35,7 @@ export default class MyMocPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'update-moc',
-			name: 'Обновить MOC в этой заметке',
+			name: 'Update table of contents in this note',
 			checkCallback: (checking) => {
 				const file = this.app.workspace.getActiveFile();
 				if (!file || file.extension !== 'md') return false;
@@ -44,8 +44,8 @@ export default class MyMocPlugin extends Plugin {
 			},
 		});
 
-		// Подписка после готовности layout: иначе Obsidian при старте
-		// выдаёт `create` на каждый файл vault и плагин перепишет всё подряд.
+		// Subscribe once the layout is ready: on startup Obsidian fires `create`
+		// for every file in the vault, which would rewrite everything at once.
 		this.app.workspace.onLayoutReady(() => {
 			this.registerEvent(
 				this.app.vault.on('create', (f) => this.queueParentOf(f.path)),
@@ -64,8 +64,8 @@ export default class MyMocPlugin extends Plugin {
 					if (file && file.extension === 'md') void this.updateMocFile(file);
 				}),
 			);
-			// Набранный в редакторе маркер не порождает ни `create`, ни `file-open`,
-			// а `modify` приходит только после автосохранения — отсюда была задержка.
+			// A marker typed into an open note fires neither `create` nor `file-open`,
+			// and `modify` only arrives after autosave — hence the former delay.
 			this.registerEvent(
 				this.app.workspace.on('editor-change', (editor, info) =>
 					this.editorChanged(editor, info),
@@ -90,7 +90,7 @@ export default class MyMocPlugin extends Plugin {
 		}
 	}
 
-	/** Обновляет все MOC-файлы, лежащие в этой папке. */
+	/** Updates every index note living in this folder. */
 	private async updateFolder(folder: TFolder) {
 		const mocFiles: TFile[] = [];
 		for (const child of folder.children) {
@@ -111,12 +111,12 @@ export default class MyMocPlugin extends Plugin {
 	}
 
 	/**
-	 * Правка в редакторе идёт через сам редактор, а не через vault.modify:
-	 * на диске лежит предыдущая версия, и запись туда стёрла бы несохранённый текст.
+	 * Edits go through the editor rather than vault.modify: the file on disk still
+	 * holds the previous version, so writing there would discard unsaved text.
 	 */
 	private queueEditor = debounce(
 		(editor: Editor, file: TFile) => void this.updateInEditor(editor, file),
-		250, // читаем одну папку — дешевле, чем пакетная пересборка по событиям vault
+		250, // reading a single folder is cheaper than the batched vault-event rebuild
 	);
 
 	private async updateInEditor(editor: Editor, file: TFile) {
@@ -126,8 +126,8 @@ export default class MyMocPlugin extends Plugin {
 		const parent = file.parent ?? this.app.vault.getRoot();
 		const lines = buildIndex(await this.collectEntries(parent), file.path, this.settings);
 		const updated = applyMocBlock(content, lines, this.settings.marker);
-		// null означает «список тот же» — при обычном наборе текста мы сюда не доходим
-		// и курсор не трогаем.
+		// null means the list is unchanged — ordinary typing never reaches past here,
+		// so the cursor is left alone.
 		if (updated === null) return;
 
 		const cursor = editor.getCursor();
@@ -137,16 +137,16 @@ export default class MyMocPlugin extends Plugin {
 		this.queueParentOf(parent.path);
 	}
 
-	/** Обновляет один конкретный файл, если в нём есть маркер. */
+	/** Updates one specific note, if it carries a marker. */
 	private async updateMocFile(file: TFile) {
 		const content = await this.app.vault.cachedRead(file);
 		if (!hasMarker(content, this.settings.marker)) return;
 		const parent = file.parent ?? this.app.vault.getRoot();
 		await this.rewrite(file, await this.collectEntries(parent));
 
-		// В MOC родительской папки эта папка числится строкой без ссылки, пока в ней
-		// нет своего MOC. Появление маркера — это `modify`, на который мы не подписаны,
-		// поэтому ставим папку уровнем выше в очередь сами.
+		// In the parent's index this folder shows as plain text until it has an index
+		// of its own. Adding a marker is a `modify`, which we do not subscribe to,
+		// so the folder one level up is queued explicitly.
 		this.queueParentOf(parent.path);
 	}
 
@@ -167,7 +167,7 @@ export default class MyMocPlugin extends Plugin {
 		return entries;
 	}
 
-	/** Первый по алфавиту файл с маркером — чтобы выбор был предсказуемым. */
+	/** First marked note alphabetically, so the choice is predictable. */
 	private async findMocIn(folder: TFolder): Promise<TFile | null> {
 		const notes = folder.children
 			.filter((c): c is TFile => c instanceof TFile && c.extension === 'md')
@@ -210,10 +210,10 @@ class MyMocSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('Слово маркера')
+			.setName('Marker word')
 			.setDesc(
-				'Плагин обновляет только заметки, содержащие %% СЛОВО %%. ' +
-					'Имя файла и папка значения не имеют.',
+				'The plugin only updates notes containing %% WORD %%. ' +
+					'File name and folder do not matter.',
 			)
 			.addText((text) =>
 				text
@@ -226,9 +226,9 @@ class MyMocSettingTab extends PluginSettingTab {
 			);
 
 		const icons: Array<[keyof Settings['icons'], string]> = [
-			['note', 'Значок заметки'],
-			['canvas', 'Значок canvas'],
-			['folder', 'Значок папки'],
+			['note', 'Note icon'],
+			['canvas', 'Canvas icon'],
+			['folder', 'Folder icon'],
 		];
 		for (const [key, label] of icons) {
 			new Setting(containerEl).setName(label).addText((text) =>
@@ -240,8 +240,8 @@ class MyMocSettingTab extends PluginSettingTab {
 		}
 
 		new Setting(containerEl)
-			.setName('Обратный порядок')
-			.setDesc('По умолчанию А→Я. Папки в любом случае остаются сверху.')
+			.setName('Reverse order')
+			.setDesc('Sorts Z to A instead of A to Z. Folders always stay on top.')
 			.addToggle((toggle) =>
 				toggle.setValue(this.plugin.settings.descending).onChange(async (value) => {
 					this.plugin.settings.descending = value;

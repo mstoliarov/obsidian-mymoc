@@ -1,6 +1,6 @@
 /**
- * Чистая логика MyMOC: сборка списка и вставка его в текст заметки.
- * Ни одной зависимости от Obsidian — поэтому покрывается обычным тестом.
+ * Pure MyMOC logic: building the list and inserting it into note text.
+ * No dependency on Obsidian, so it is covered by plain unit tests.
  */
 
 export interface Icons {
@@ -15,14 +15,14 @@ export interface Settings {
 	descending: boolean;
 }
 
-/** Запись о содержимом папки — то, что обвязка вычитывает из vault. */
+/** One item of folder contents, as read from the vault by the wiring layer. */
 export interface Entry {
-	/** Путь от корня vault: `03_RESOURCES/SERVER/API.md` или `03_RESOURCES/SERVER/Terminal` */
+	/** Path from the vault root: `Projects/Notes/API.md` or `Projects/Notes/Archive` */
 	path: string;
-	/** Имя с расширением: `API.md`, `Схема.canvas`, `Terminal` */
+	/** Name with extension: `API.md`, `Diagram.canvas`, `Archive` */
 	name: string;
 	isFolder: boolean;
-	/** Для папок: путь к MOC-файлу внутри неё, если он там найден. */
+	/** For folders: path to the index note inside it, when one exists. */
 	mocPath?: string;
 }
 
@@ -34,14 +34,14 @@ export const DEFAULT_SETTINGS: Settings = {
 
 const stripExtension = (path: string): string => path.replace(/\.md$/, '');
 
-/** `Заметка.md` → `Заметка`, `Схема.canvas` → `Схема`, `Terminal` → `Terminal` */
+/** `Note.md` -> `Note`, `Diagram.canvas` -> `Diagram`, `Archive` -> `Archive` */
 const displayName = (name: string): string => name.replace(/\.(md|canvas)$/, '');
 
 const link = (target: string, label: string): string => `[[${target}|${label}]]`;
 
 /**
- * Собирает строки оглавления для содержимого одной папки.
- * Отбрасывает вложения и сам MOC-файл, сортирует папки перед файлами.
+ * Builds the table-of-contents lines for the contents of a single folder.
+ * Drops attachments and the index note itself; folders sort before files.
  */
 export function buildIndex(entries: Entry[], selfPath: string, settings: Settings): string[] {
 	const keep = entries.filter((e) => {
@@ -52,14 +52,14 @@ export function buildIndex(entries: Entry[], selfPath: string, settings: Setting
 
 	const direction = settings.descending ? -1 : 1;
 	keep.sort((a, b) => {
-		if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1; // папки всегда сверху
+		if (a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1; // folders always on top
 		return direction * displayName(a.name).localeCompare(displayName(b.name));
 	});
 
 	return keep.map((e) => {
 		const label = displayName(e.name);
 		if (e.isFolder) {
-			// Obsidian не умеет ссылаться на каталог — без MOC внутри остаётся простой строкой.
+			// Obsidian cannot link to a directory — without an index inside it stays plain text.
 			return e.mocPath
 				? `${settings.icons.folder} ${link(stripExtension(e.mocPath), label)}`
 				: `${settings.icons.folder} ${label}`;
@@ -74,7 +74,7 @@ const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\
 export const startMarker = (marker: string): string => `%% ${marker}:start %%`;
 export const endMarker = (marker: string): string => `%% ${marker}:end %%`;
 
-/** Есть ли в тексте маркер — голый `%% MOC %%` или уже развёрнутый блок. */
+/** Whether the text carries a marker: either bare `%% MOC %%` or an expanded block. */
 export function hasMarker(content: string, marker: string): boolean {
 	const m = escapeRegExp(marker);
 	return new RegExp(`%%\\s*${m}\\s*%%`).test(content)
@@ -82,10 +82,10 @@ export function hasMarker(content: string, marker: string): boolean {
 }
 
 /**
- * Вставляет список в текст заметки, не трогая ничего вокруг блока.
- * Голый маркер разворачивается в пару ограничителей; уже развёрнутый блок обновляется.
- * Возвращает null, если менять нечего — так обвязка не пишет файл впустую
- * и не зацикливается на собственных изменениях.
+ * Inserts the list into note text without touching anything around the block.
+ * A bare marker expands into a delimiter pair; an existing block is updated.
+ * Returns null when there is nothing to change, so the caller never writes
+ * needlessly and cannot loop on its own edits.
  */
 export function applyMocBlock(content: string, lines: string[], marker: string): string | null {
 	const m = escapeRegExp(marker);
@@ -99,7 +99,7 @@ export function applyMocBlock(content: string, lines: string[], marker: string):
 		return updated === content ? null : updated;
 	}
 
-	// Голый маркер: разворачиваем первое вхождение, остальные оставляем как есть.
+	// Bare marker: expand the first occurrence only, leave any others as they are.
 	const bare = new RegExp(`%%\\s*${m}\\s*%%`);
 	if (bare.test(content)) return content.replace(bare, block);
 

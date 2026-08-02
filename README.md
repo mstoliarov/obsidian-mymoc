@@ -1,98 +1,91 @@
 # MyMOC
 
-Плагин Obsidian: держит в актуальном состоянии оглавления папок.
+An Obsidian plugin that keeps folder tables of contents up to date.
 
-**Файлы не создаёт никогда.** Обновляет только те заметки, в которые вы сами вписали
-маркер. Поэтому здесь нет ни белых, ни чёрных списков папок — то, что обрабатывается,
-определяется наличием маркера, а не настройками.
+**It never creates files.** It only updates notes you have marked yourself. That single
+decision removes the need for include and exclude folder lists — what gets processed is
+defined by markers you place, not by settings you maintain.
 
-## Как пользоваться
+## How it works
 
-Создайте в нужной папке заметку с **любым** именем и вставьте строку:
+Create a note with **any name** in the folder you want indexed and type:
 
 ```
 %% MOC %%
 ```
 
-При открытии заметки маркер развернётся в блок:
+The marker expands into a block as you type:
 
 ```
 %% MOC:start %%
-🗂️ [[03_RESOURCES/SERVER/Terminal/Оглавление|Terminal]]
-📄 [[03_RESOURCES/SERVER/API|API]]
-🎨 [[03_RESOURCES/SERVER/Схема сети.canvas|Схема сети]]
+🗂️ [[Projects/Website/Overview|Website]]
+📄 [[Projects/Roadmap|Roadmap]]
+🎨 [[Projects/Architecture.canvas|Architecture]]
 %% MOC:end %%
 ```
 
-Дальше список обновляется сам при добавлении, удалении и переименовании файлов
-и папок рядом. Всё, что вы напишете **до и после** блока, остаётся нетронутым —
-пишите там заголовки, пояснения, свои ссылки.
+From then on the list updates itself whenever files and folders are added, removed or
+renamed next to it. Anything you write **above or below** the block stays untouched —
+put your headings, notes and manual links there.
 
-Чтобы папка перестала обновляться — удалите блок **вместе с обоими ограничителями**.
-Если стереть только `%% MOC:end %%`, плагин перестанет узнавать блок и молча оставит
-его как есть.
+To stop indexing a folder, delete the block **including both delimiters**. Removing only
+`%% MOC:end %%` leaves the plugin unable to recognise the block, and it will quietly
+leave it alone.
 
-## ⚠️ Имена внутри папки VPS
+## How it differs from similar plugins
 
-Свобода имён действует везде, **кроме** `01_PROJECTS/VPS/` — той ветки, что
-синхронизируется с рабочими репозиториями на сервере.
+|  | MyMOC | Zoottelkeeper | Waypoint |
+|---|---|---|---|
+| Creates index files on its own | no | yes, in every folder | no |
+| Index file name | any | folder name + prefix | must equal folder name |
+| Which folders are processed | those you mark | include/exclude lists | those you mark |
 
-Там MOC-файл обязан начинаться с дефиса: `-Оглавление.md`, `-Проекты.md`. Фильтры
-Syncthing отсекают такие файлы по маске `-*.md`, чтобы оглавления не уезжали внутрь
-git-репозиториев. Файл с именем без дефиса туда просочится, и его придётся вычищать
-руками.
+The practical consequence: with MyMOC a vault cannot be flooded with generated files,
+because generating files is not something the plugin does. And an index can be called
+`Overview`, `Start here` or `Карта` — whatever fits your vault.
 
-Проверить, не просочилось ли что-то, можно на сервере:
+## What goes into the list
 
-```bash
-grep -rl 'MOC:start' /root/PROJECTS --include='*.md' | grep -v node_modules
-```
+- Contents of **one** folder, the one holding the note. It does not recurse
+- Notes (`.md`) and canvases (`.canvas`). Images, PDFs and other attachments are skipped
+- Folders first, then files; alphabetical within each group, using locale-aware
+  comparison so non-Latin scripts sort correctly
+- The note itself is never listed inside its own index
+- A subfolder links to its own index note if one exists there; otherwise it appears as
+  plain text, since Obsidian cannot link to a directory
 
-Пустой вывод — всё в порядке.
+## Settings
 
-В остальном vault (`02_AREAS`, `03_RESOURCES`, `ЖУРНАЛ`, `IDEAS` и прочих) имя
-действительно любое.
-
-## Что попадает в список
-
-- Содержимое **одной** папки — той, где лежит сам MOC. Вглубь не заходит
-- Заметки `.md` и схемы `.canvas`. Картинки, PDF и прочие вложения — нет
-- Подпапки идут первыми, затем файлы; внутри групп по алфавиту (кириллица корректно)
-- Сам MOC-файл в свой список не попадает
-- Ссылка на подпапку ведёт на её MOC, если он там есть. Если нет — просто имя папки:
-  Obsidian не умеет ссылаться на каталоги
-
-## Настройки
-
-| Параметр | По умолчанию | Зачем |
+| Setting | Default | Purpose |
 |---|---|---|
-| Слово маркера | `MOC` | если `%% MOC %%` конфликтует с чем-то ещё |
-| Значки | `📄` `🎨` `🗂️` | внешний вид строк |
-| Обратный порядок | выкл. | Я→А вместо А→Я |
+| Marker word | `MOC` | change if `%% MOC %%` collides with something else |
+| Icons | `📄` `🎨` `🗂️` | appearance of the three row types |
+| Reverse order | off | sort Z to A instead of A to Z |
 
-## Установка
+## Installation
 
-Скопируйте `main.js`, `manifest.json` и `styles.css` в папку
+Not yet in the community plugin directory. Two options:
 
-```
-<ваш vault>\.obsidian\plugins\mymoc\
-```
+**Manual.** Download `main.js` and `manifest.json` from the
+[latest release](https://github.com/mstoliarov/obsidian-mymoc/releases/latest) and put
+them into `<your vault>/.obsidian/plugins/mymoc/`. Then enable **MyMOC** under
+Settings → Community plugins.
 
-Затем в Obsidian: *Настройки* → *Плагины сообщества* → обновить список → включить **MyMOC**.
-Перезапуск не требуется.
+**Via BRAT.** Add `mstoliarov/obsidian-mymoc` as a beta plugin.
 
-## Разработка
+## Development
 
 ```bash
 npm install
-npm test     # тесты логики сборки списка
-npm run check # проверка типов
-npm run build # сборка main.js
+npm test      # tests for the list-building logic
+npm run check # type checking
+npm run build # produces main.js
 ```
 
-Вся содержательная логика — в `src/buildIndex.ts`: от Obsidian не зависит и покрыта
-тестами. `src/main.ts` — тонкая обвязка на событиях vault.
+All meaningful logic lives in `src/buildIndex.ts` — it has no dependency on the Obsidian
+API and is covered by plain `node --test` tests. `src/main.ts` is a thin layer wiring
+vault events to that logic.
 
-Версия 1.0.1: список обновляется прямо во время набора.
+## License
 
-Спецификация: `docs/superpowers/specs/2026-08-01-mymoc-design.md`
+MIT
