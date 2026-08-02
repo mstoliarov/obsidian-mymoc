@@ -29,7 +29,7 @@ put your headings, notes and manual links there.
 
 ### Indexing a whole tree at once
 
-Type `%% MOC+ %%` instead, and the plugin walks every subfolder below the note, creating
+Type `%% +MOC %%` instead, and the plugin walks every subfolder below the note, creating
 an index note in each one. The file is named after its folder with a configurable prefix,
 `-Archive.md` by default.
 
@@ -40,7 +40,7 @@ to date like any other index.
 Folders are skipped when they already contain an index, when a file of that name exists,
 or when they hold nothing but attachments. Existing files are never overwritten.
 
-> **Try it on a small folder first.** Placed high in a vault, `%% MOC+ %%` can create
+> **Try it on a small folder first.** Placed high in a vault, `%% +MOC %%` can create
 > dozens of notes across unrelated projects in one go, and the only way back is deleting
 > them by hand. Run it on a throwaway folder with two or three subfolders, see the shape
 > it produces, then use it where you meant to.
@@ -63,7 +63,7 @@ leave it alone.
 |  | MyMOC | Zoottelkeeper | Waypoint |
 |---|---|---|---|
 | Creates index files unprompted | no | yes, in every folder | no |
-| Can create a whole tree on request | yes, `%% MOC+ %%` | — | no |
+| Can create a whole tree on request | yes, `%% +MOC %%` | — | no |
 | Index file name | any | folder name + prefix | must equal folder name |
 | Which folders are processed | those you mark | include/exclude lists | those you mark |
 
@@ -86,7 +86,7 @@ because generating files is not something the plugin does. And an index can be c
 | Setting | Default | Purpose |
 |---|---|---|
 | Marker word | `MOC` | change if `%% MOC %%` collides with something else |
-| Prefix for created notes | `-` | naming of notes made by `%% MOC+ %%` |
+| Prefix for created notes | `-` | naming of notes made by `%% +MOC %%` |
 | Icons | `📄` `🎨` `🗂️` | appearance of the three row types |
 | Reverse order | off | sort Z to A instead of A to Z |
 

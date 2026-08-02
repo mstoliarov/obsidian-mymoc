@@ -114,19 +114,26 @@ export const startMarker = (marker: string): string => `%% ${marker}:start %%`;
 export const endMarker = (marker: string): string => `%% ${marker}:end %%`;
 
 /**
- * Whether the text carries a marker: bare `%% MOC %%`, recursive `%% MOC+ %%`,
+ * Whether the text carries a marker: bare `%% MOC %%`, recursive `%% +MOC %%`,
  * or an expanded block. Markers inside code spans and fences do not count.
  */
 export function hasMarker(content: string, marker: string): boolean {
 	const masked = maskCode(content);
 	const m = escapeRegExp(marker);
-	return new RegExp(`%%\\s*${m}\\+?\\s*%%`).test(masked)
+	return new RegExp(`%%\\s*\\+?${m}\\s*%%`).test(masked)
 		|| new RegExp(`%%\\s*${m}:start\\s*%%`).test(masked);
 }
 
-/** Whether the text asks for a one-off recursive pass: `%% MOC+ %%`. */
+/**
+ * Whether the text asks for a one-off recursive pass: `%% +MOC %%`.
+ *
+ * The plus goes in front deliberately. Obsidian closes `%%` as you type, so the
+ * word is typed inside an existing pair: a trailing plus would mean passing
+ * through `%% MOC %%` first, and the plain marker would fire and collapse the
+ * line before the plus could be typed.
+ */
 export function hasRecursiveMarker(content: string, marker: string): boolean {
-	return new RegExp(`%%\\s*${escapeRegExp(marker)}\\+\\s*%%`).test(maskCode(content));
+	return new RegExp(`%%\\s*\\+${escapeRegExp(marker)}\\s*%%`).test(maskCode(content));
 }
 
 /**
@@ -171,9 +178,9 @@ export function applyMocBlock(content: string, lines: string[], marker: string):
 	}
 
 	// Bare marker: expand the first occurrence only, leave any others as they are.
-	// `\+?` also consumes the recursive form, so %% MOC+ %% collapses into a plain
+	// `\+?` also consumes the recursive form, so %% +MOC %% collapses into a plain
 	// block once its one-off pass is done and never fires again.
-	const bare = new RegExp(`%%\\s*${m}\\+?\\s*%%`).exec(masked);
+	const bare = new RegExp(`%%\\s*\\+?${m}\\s*%%`).exec(masked);
 	if (bare) return splice(bare.index, bare[0].length);
 
 	return null;

@@ -186,7 +186,7 @@ export default class MyMocPlugin extends Plugin {
 	}
 
 	/**
-	 * One-off pass for `%% MOC+ %%`: creates an index in every subfolder below
+	 * One-off pass for `%% +MOC %%`: creates an index in every subfolder below
 	 * the note. Deepest folders go first, so by the time a parent index is built
 	 * its children already have indexes to link to.
 	 */
@@ -344,7 +344,7 @@ class MyMocSettingTab extends PluginSettingTab {
 		new Setting(root)
 			.setName('Prefix for created notes')
 			.setDesc(
-				'Used by the %% MOC+ %% marker when it creates indexes in subfolders. ' +
+				'Used by the %% +MOC %% marker when it creates indexes in subfolders. ' +
 					'A leading dash keeps them together at the top of the file list.',
 			)
 			.addText((text) =>

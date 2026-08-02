@@ -38,10 +38,10 @@ var endMarker = (marker) => `%% ${marker}:end %%`;
 function hasMarker(content, marker) {
   const masked = maskCode(content);
   const m = escapeRegExp(marker);
-  return new RegExp(`%%\\s*${m}\\+?\\s*%%`).test(masked) || new RegExp(`%%\\s*${m}:start\\s*%%`).test(masked);
+  return new RegExp(`%%\\s*\\+?${m}\\s*%%`).test(masked) || new RegExp(`%%\\s*${m}:start\\s*%%`).test(masked);
 }
 function hasRecursiveMarker(content, marker) {
-  return new RegExp(`%%\\s*${escapeRegExp(marker)}\\+\\s*%%`).test(maskCode(content));
+  return new RegExp(`%%\\s*\\+${escapeRegExp(marker)}\\s*%%`).test(maskCode(content));
 }
 function planMocCreation(folders, prefix) {
   return folders.filter((f) => f.hasContent && !f.hasMoc && !f.nameTaken).map((f) => ({
@@ -61,7 +61,7 @@ function applyMocBlock(content, lines, marker) {
     const updated = splice(expanded.index, expanded[0].length);
     return updated === content ? null : updated;
   }
-  const bare = new RegExp(`%%\\s*${m}\\+?\\s*%%`).exec(masked);
+  const bare = new RegExp(`%%\\s*\\+?${m}\\s*%%`).exec(masked);
   if (bare) return splice(bare.index, bare[0].length);
   return null;
 }

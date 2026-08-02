@@ -192,17 +192,26 @@ test('префикс берётся из настроек', () => {
 });
 
 test('рекурсивный маркер отличается от обычного', () => {
-	assert.equal(hasRecursiveMarker('%% MOC+ %%', 'MOC'), true);
+	assert.equal(hasRecursiveMarker('%% +MOC %%', 'MOC'), true);
 	assert.equal(hasRecursiveMarker('%% MOC %%', 'MOC'), false);
-	assert.equal(hasRecursiveMarker('`%% MOC+ %%`', 'MOC'), false); // в коде не считается
+	assert.equal(hasRecursiveMarker('`%% +MOC %%`', 'MOC'), false); // в коде не считается
+});
+
+test('плюс стоит спереди: набор +MOC не проходит через состояние обычного маркера', () => {
+	// Obsidian закрывает %% сразу, слово печатается внутри пары.
+	// Ни одно промежуточное состояние не должно быть распознано как обычный маркер.
+	for (const partial of ['%% + %%', '%% +M %%', '%% +MO %%']) {
+		assert.equal(hasMarker(partial, 'MOC'), false, partial);
+	}
+	assert.equal(hasMarker('%% +MOC %%', 'MOC'), true);
 });
 
 test('обычный hasMarker распознаёт и рекурсивную форму', () => {
-	assert.equal(hasMarker('%% MOC+ %%', 'MOC'), true);
+	assert.equal(hasMarker('%% +MOC %%', 'MOC'), true);
 });
 
-test('после прохода MOC+ схлопывается в обычный блок и больше не сработает', () => {
-	const out = applyMocBlock('текст\n%% MOC+ %%\nхвост', ['📄 [[A/Б|Б]]'], 'MOC');
+test('после прохода +MOC схлопывается в обычный блок и больше не сработает', () => {
+	const out = applyMocBlock('текст\n%% +MOC %%\nхвост', ['📄 [[A/Б|Б]]'], 'MOC');
 	assert.equal(out, 'текст\n%% MOC:start %%\n📄 [[A/Б|Б]]\n%% MOC:end %%\nхвост');
 	assert.equal(hasRecursiveMarker(out, 'MOC'), false);
 });
