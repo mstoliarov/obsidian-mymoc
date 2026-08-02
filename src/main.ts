@@ -209,9 +209,13 @@ class MyMocSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 		// Настройки кладутся в собственный div, а не прямо в containerEl:
-		// у контейнера вкладки есть отступы из темы, и правило плагина
-		// с ними конфликтует по специфичности.
+		// у контейнера вкладки отступы задаёт тема, и правило из styles.css
+		// с ними конфликтует по специфичности. Отступ ставится здесь же,
+		// а не только в таблице стилей, — так он не зависит от того,
+		// подхватился ли styles.css при установке.
 		const root = containerEl.createDiv({ cls: 'mymoc-settings' });
+		root.style.paddingLeft = '10px';
+		root.style.paddingRight = '10px';
 
 		new Setting(root)
 			.setName('Marker word')
@@ -252,5 +256,11 @@ class MyMocSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}),
 			);
+
+		const version = root.createEl('p', {
+			text: `MyMOC v${this.plugin.manifest.version}`,
+		});
+		version.style.opacity = '0.5';
+		version.style.fontSize = 'var(--font-ui-smaller)';
 	}
 }

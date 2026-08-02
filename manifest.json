@@ -1,7 +1,7 @@
 {
   "id": "mymoc",
   "name": "MyMOC",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "minAppVersion": "1.4.0",
   "description": "Keeps folder tables of contents up to date. Updates only the notes you mark and never creates files on its own.",
   "author": "mstoliarov",
