@@ -28,24 +28,31 @@ function buildIndex(entries, selfPath, settings) {
   });
 }
 var escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function maskCode(content) {
+  const blank = (m) => m.replace(/[^\n]/g, " ");
+  return content.replace(/^([`~]{3,})[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, blank).replace(/`[^`\n]+`/g, blank);
+}
 var startMarker = (marker) => `%% ${marker}:start %%`;
 var endMarker = (marker) => `%% ${marker}:end %%`;
 function hasMarker(content, marker) {
+  const masked = maskCode(content);
   const m = escapeRegExp(marker);
-  return new RegExp(`%%\\s*${m}\\s*%%`).test(content) || new RegExp(`%%\\s*${m}:start\\s*%%`).test(content);
+  return new RegExp(`%%\\s*${m}\\s*%%`).test(masked) || new RegExp(`%%\\s*${m}:start\\s*%%`).test(masked);
 }
 function applyMocBlock(content, lines, marker) {
+  const masked = maskCode(content);
   const m = escapeRegExp(marker);
   const block = [startMarker(marker), ...lines, endMarker(marker)].join("\n");
+  const splice = (at, length) => content.slice(0, at) + block + content.slice(at + length);
   const expanded = new RegExp(
     `%%\\s*${m}:start\\s*%%[\\s\\S]*?%%\\s*${m}:end\\s*%%`
-  );
-  if (expanded.test(content)) {
-    const updated = content.replace(expanded, block);
+  ).exec(masked);
+  if (expanded) {
+    const updated = splice(expanded.index, expanded[0].length);
     return updated === content ? null : updated;
   }
-  const bare = new RegExp(`%%\\s*${m}\\s*%%`);
-  if (bare.test(content)) return content.replace(bare, block);
+  const bare = new RegExp(`%%\\s*${m}\\s*%%`).exec(masked);
+  if (bare) return splice(bare.index, bare[0].length);
   return null;
 }
 export {
@@ -54,5 +61,6 @@ export {
   buildIndex,
   endMarker,
   hasMarker,
+  maskCode,
   startMarker
 };

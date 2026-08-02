@@ -71,14 +71,34 @@ export function buildIndex(entries: Entry[], selfPath: string, settings: Setting
 
 const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+/**
+ * Blanks out fenced and inline code, preserving length so that match indices
+ * still point into the original text.
+ *
+ * Without this, a note that merely *mentions* the marker — documentation about
+ * this plugin, a changelog entry — would be treated as an index and rewritten
+ * mid-sentence. Wrapping the marker in backticks is the natural way to write
+ * about it, so that has to be the way to opt out.
+ */
+export function maskCode(content: string): string {
+	const blank = (m: string) => m.replace(/[^\n]/g, ' ');
+	return content
+		.replace(/^([`~]{3,})[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, blank) // ``` fenced ```
+		.replace(/`[^`\n]+`/g, blank); // `inline`
+}
+
 export const startMarker = (marker: string): string => `%% ${marker}:start %%`;
 export const endMarker = (marker: string): string => `%% ${marker}:end %%`;
 
-/** Whether the text carries a marker: either bare `%% MOC %%` or an expanded block. */
+/**
+ * Whether the text carries a marker: either bare `%% MOC %%` or an expanded block.
+ * Markers inside code spans and code fences do not count — see maskCode.
+ */
 export function hasMarker(content: string, marker: string): boolean {
+	const masked = maskCode(content);
 	const m = escapeRegExp(marker);
-	return new RegExp(`%%\\s*${m}\\s*%%`).test(content)
-		|| new RegExp(`%%\\s*${m}:start\\s*%%`).test(content);
+	return new RegExp(`%%\\s*${m}\\s*%%`).test(masked)
+		|| new RegExp(`%%\\s*${m}:start\\s*%%`).test(masked);
 }
 
 /**
@@ -88,20 +108,26 @@ export function hasMarker(content: string, marker: string): boolean {
  * needlessly and cannot loop on its own edits.
  */
 export function applyMocBlock(content: string, lines: string[], marker: string): string | null {
+	// Searching happens in the masked copy so markers inside code are invisible,
+	// while the replacement is spliced into the original by index.
+	const masked = maskCode(content);
 	const m = escapeRegExp(marker);
 	const block = [startMarker(marker), ...lines, endMarker(marker)].join('\n');
 
+	const splice = (at: number, length: number) =>
+		content.slice(0, at) + block + content.slice(at + length);
+
 	const expanded = new RegExp(
 		`%%\\s*${m}:start\\s*%%[\\s\\S]*?%%\\s*${m}:end\\s*%%`,
-	);
-	if (expanded.test(content)) {
-		const updated = content.replace(expanded, block);
+	).exec(masked);
+	if (expanded) {
+		const updated = splice(expanded.index, expanded[0].length);
 		return updated === content ? null : updated;
 	}
 
 	// Bare marker: expand the first occurrence only, leave any others as they are.
-	const bare = new RegExp(`%%\\s*${m}\\s*%%`);
-	if (bare.test(content)) return content.replace(bare, block);
+	const bare = new RegExp(`%%\\s*${m}\\s*%%`).exec(masked);
+	if (bare) return splice(bare.index, bare[0].length);
 
 	return null;
 }

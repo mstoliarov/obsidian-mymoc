@@ -28,6 +28,12 @@ From then on the list updates itself whenever files and folders are added, remov
 renamed next to it. Anything you write **above or below** the block stays untouched —
 put your headings, notes and manual links there.
 
+### Writing *about* the marker
+
+Wrap it in backticks — `` `%% MOC %%` `` — and the plugin ignores it. The same goes for
+fenced code blocks. Without this, any note documenting the plugin would turn itself into
+an index mid-sentence.
+
 To stop indexing a folder, delete the block **including both delimiters**. Removing only
 `%% MOC:end %%` leaves the plugin unable to recognise the block, and it will quietly
 leave it alone.

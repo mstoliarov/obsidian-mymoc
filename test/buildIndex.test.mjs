@@ -4,6 +4,7 @@ import {
 	buildIndex,
 	applyMocBlock,
 	hasMarker,
+	maskCode,
 	DEFAULT_SETTINGS,
 } from '../build/buildIndex.mjs';
 
@@ -116,4 +117,34 @@ test('второй маркер в файле остаётся нетронут�
 	const content = '%% MOC %%\nсередина\n%% MOC %%';
 	const out = applyMocBlock(content, ['x'], 'MOC');
 	assert.equal(out, '%% MOC:start %%\nx\n%% MOC:end %%\nсередина\n%% MOC %%');
+});
+
+test('маркер в inline-коде не срабатывает', () => {
+	const content = 'Пишу про плагин: `%% MOC %%` — вот такой маркер.';
+	assert.equal(hasMarker(content, 'MOC'), false);
+	assert.equal(applyMocBlock(content, ['x'], 'MOC'), null);
+});
+
+test('маркер в блоке кода не срабатывает', () => {
+	const content = '# Док\n\n```\n%% MOC %%\n```\n\nконец';
+	assert.equal(hasMarker(content, 'MOC'), false);
+	assert.equal(applyMocBlock(content, ['x'], 'MOC'), null);
+});
+
+test('настоящий маркер после кодового блока всё равно срабатывает', () => {
+	const content = '```\n%% MOC %%\n```\n\n%% MOC %%';
+	assert.equal(hasMarker(content, 'MOC'), true);
+	const out = applyMocBlock(content, ['📄 [[F/А|А]]'], 'MOC');
+	assert.equal(out, '```\n%% MOC %%\n```\n\n%% MOC:start %%\n📄 [[F/А|А]]\n%% MOC:end %%');
+});
+
+test('развёрнутый блок обновляется, даже если выше есть пример в коде', () => {
+	const content = 'Пример: `%% MOC:start %%`\n\n%% MOC:start %%\nстарое\n%% MOC:end %%';
+	const out = applyMocBlock(content, ['новое'], 'MOC');
+	assert.equal(out, 'Пример: `%% MOC:start %%`\n\n%% MOC:start %%\nновое\n%% MOC:end %%');
+});
+
+test('маскировка кода сохраняет длину текста', () => {
+	const content = 'a `%% MOC %%` b\n```\n%% MOC %%\n```\n';
+	assert.equal(maskCode(content).length, content.length);
 });
