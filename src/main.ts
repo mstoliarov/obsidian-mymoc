@@ -260,14 +260,14 @@ class MyMocSettingTab extends PluginSettingTab {
 		// чтобы не зависеть от того, доехала ли таблица стилей при установке.
 		root.querySelectorAll('.setting-item').forEach((el) => {
 			const item = el as HTMLElement;
-			item.style.paddingLeft = '30px';
-			item.style.paddingRight = '30px';
+			item.style.paddingLeft = '10px';
+			item.style.paddingRight = '10px';
 		});
 
 		const version = root.createEl('p', {
 			text: `MyMOC v${this.plugin.manifest.version}`,
 		});
-		version.style.paddingLeft = '30px';
+		version.style.paddingLeft = '10px';
 		version.style.opacity = '0.5';
 		version.style.fontSize = 'var(--font-ui-smaller)';
 	}
