@@ -208,9 +208,12 @@ class MyMocSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
-		containerEl.addClass('mymoc-settings'); // отступы из styles.css
+		// Настройки кладутся в собственный div, а не прямо в containerEl:
+		// у контейнера вкладки есть отступы из темы, и правило плагина
+		// с ними конфликтует по специфичности.
+		const root = containerEl.createDiv({ cls: 'mymoc-settings' });
 
-		new Setting(containerEl)
+		new Setting(root)
 			.setName('Marker word')
 			.setDesc(
 				'The plugin only updates notes containing %% WORD %%. ' +
@@ -232,7 +235,7 @@ class MyMocSettingTab extends PluginSettingTab {
 			['folder', 'Folder icon'],
 		];
 		for (const [key, label] of icons) {
-			new Setting(containerEl).setName(label).addText((text) =>
+			new Setting(root).setName(label).addText((text) =>
 				text.setValue(this.plugin.settings.icons[key]).onChange(async (value) => {
 					this.plugin.settings.icons[key] = value;
 					await this.plugin.saveSettings();
@@ -240,7 +243,7 @@ class MyMocSettingTab extends PluginSettingTab {
 			);
 		}
 
-		new Setting(containerEl)
+		new Setting(root)
 			.setName('Reverse order')
 			.setDesc('Sorts Z to A instead of A to Z. Folders always stay on top.')
 			.addToggle((toggle) =>
