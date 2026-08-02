@@ -1,7 +1,7 @@
 {
   "id": "mymoc",
   "name": "MyMOC",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "minAppVersion": "1.4.0",
   "description": "Обновляет оглавления папок в заметках с маркером %% MOC %%. Файлы не создаёт.",
   "author": "maxst",

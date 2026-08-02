@@ -1,9 +1,11 @@
 import {
 	App,
+	Editor,
+	MarkdownFileInfo,
+	MarkdownView,
 	Plugin,
 	PluginSettingTab,
 	Setting,
-	TAbstractFile,
 	TFile,
 	TFolder,
 	debounce,
@@ -62,6 +64,13 @@ export default class MyMocPlugin extends Plugin {
 					if (file && file.extension === 'md') void this.updateMocFile(file);
 				}),
 			);
+			// Набранный в редакторе маркер не порождает ни `create`, ни `file-open`,
+			// а `modify` приходит только после автосохранения — отсюда была задержка.
+			this.registerEvent(
+				this.app.workspace.on('editor-change', (editor, info) =>
+					this.editorChanged(editor, info),
+				),
+			);
 		});
 	}
 
@@ -94,6 +103,38 @@ export default class MyMocPlugin extends Plugin {
 
 		const entries = await this.collectEntries(folder);
 		for (const moc of mocFiles) await this.rewrite(moc, entries);
+	}
+
+	private editorChanged(editor: Editor, info: MarkdownView | MarkdownFileInfo) {
+		const file = info.file;
+		if (file) this.queueEditor(editor, file);
+	}
+
+	/**
+	 * Правка в редакторе идёт через сам редактор, а не через vault.modify:
+	 * на диске лежит предыдущая версия, и запись туда стёрла бы несохранённый текст.
+	 */
+	private queueEditor = debounce(
+		(editor: Editor, file: TFile) => void this.updateInEditor(editor, file),
+		250, // читаем одну папку — дешевле, чем пакетная пересборка по событиям vault
+	);
+
+	private async updateInEditor(editor: Editor, file: TFile) {
+		const content = editor.getValue();
+		if (!hasMarker(content, this.settings.marker)) return;
+
+		const parent = file.parent ?? this.app.vault.getRoot();
+		const lines = buildIndex(await this.collectEntries(parent), file.path, this.settings);
+		const updated = applyMocBlock(content, lines, this.settings.marker);
+		// null означает «список тот же» — при обычном наборе текста мы сюда не доходим
+		// и курсор не трогаем.
+		if (updated === null) return;
+
+		const cursor = editor.getCursor();
+		editor.setValue(updated);
+		editor.setCursor(cursor);
+
+		this.queueParentOf(parent.path);
 	}
 
 	/** Обновляет один конкретный файл, если в нём есть маркер. */

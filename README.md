@@ -93,4 +93,6 @@ npm run build # сборка main.js
 Вся содержательная логика — в `src/buildIndex.ts`: от Obsidian не зависит и покрыта
 тестами. `src/main.ts` — тонкая обвязка на событиях vault.
 
+Версия 1.0.1: список обновляется прямо во время набора.
+
 Спецификация: `docs/superpowers/specs/2026-08-01-mymoc-design.md`
