@@ -27,8 +27,8 @@ From then on the list updates itself whenever files and folders are added, remov
 renamed next to it. Anything you write **above or below** the block stays untouched —
 put your headings, notes and manual links there.
 
-The word is yours to choose in settings. Set it to `Карта`, and the markers become
-`%% Карта %%` and `%% +Карта %%` — the recursive form always mirrors whatever word you
+The word is yours to choose in settings. Set it to `Map`, and the markers become
+`%% Map %%` and `%% +Map %%` — the recursive form always mirrors whatever word you
 picked.
 
 ### Indexing a whole tree at once
@@ -51,10 +51,7 @@ or when they hold nothing but attachments. Existing files are never overwritten.
 
 ### Writing *about* the marker
 
-Wrap it in backticks — `` `%% MOC:start %%
-🗂️ docs
-📄 [[01_PROJECTS/VPS/mymoc/README.sync-conflict-20260802-135235-Q7SYFUK|README.sync-conflict-20260802-135235-Q7SYFUK]]
-%% MOC:end %%` `` — and the plugin ignores it. The same goes for
+Wrap it in backticks — `%%MOC%%`— and the plugin ignores it. The same goes for
 fenced code blocks. Without this, any note documenting the plugin would turn itself into
 an index mid-sentence.
 
@@ -98,7 +95,7 @@ because generating files is not something the plugin does. And an index can be c
 
 Not yet in the community plugin directory. Two options:
 
-**Manual.** Download `main.js`, `manifest.json` and `styles.css` from the
+**Manual.** Download `main.js` and `manifest.json` from the
 [latest release](https://github.com/mstoliarov/obsidian-mymoc/releases/latest) and put
 them into `<your vault>/.obsidian/plugins/mymoc/`. Then enable **MyMOC** under
 Settings → Community plugins.
