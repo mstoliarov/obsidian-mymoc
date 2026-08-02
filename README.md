@@ -18,9 +18,8 @@ The marker expands into a block as you type:
 
 ```
 %% MOC:start %%
-🗂️ [[Projects/Website/Overview|Website]]
-📄 [[Projects/Roadmap|Roadmap]]
-🎨 [[Projects/Architecture.canvas|Architecture]]
+🗂️ docs
+📄 [[01_PROJECTS/VPS/mymoc/README.sync-conflict-20260802-135235-Q7SYFUK|README.sync-conflict-20260802-135235-Q7SYFUK]]
 %% MOC:end %%
 ```
 
@@ -72,7 +71,7 @@ because generating files is not something the plugin does. And an index can be c
 
 Not yet in the community plugin directory. Two options:
 
-**Manual.** Download `main.js` and `manifest.json` from the
+**Manual.** Download `main.js`, `manifest.json` and `styles.css` from the
 [latest release](https://github.com/mstoliarov/obsidian-mymoc/releases/latest) and put
 them into `<your vault>/.obsidian/plugins/mymoc/`. Then enable **MyMOC** under
 Settings → Community plugins.

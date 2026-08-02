@@ -208,6 +208,7 @@ class MyMocSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		containerEl.addClass('mymoc-settings'); // отступы из styles.css
 
 		new Setting(containerEl)
 			.setName('Marker word')

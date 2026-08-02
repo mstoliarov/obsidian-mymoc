@@ -1,6 +1,6 @@
 {
   "name": "mymoc",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Obsidian plugin: keeps folder tables of contents up to date",
   "private": true,
   "scripts": {
