@@ -3,6 +3,7 @@ import {
 	Editor,
 	MarkdownFileInfo,
 	MarkdownView,
+	Notice,
 	Plugin,
 	PluginSettingTab,
 	Setting,
@@ -12,11 +13,16 @@ import {
 } from 'obsidian';
 import {
 	Entry,
+	FolderNode,
 	Settings,
 	DEFAULT_SETTINGS,
 	buildIndex,
 	applyMocBlock,
 	hasMarker,
+	hasRecursiveMarker,
+	planMocCreation,
+	startMarker,
+	endMarker,
 } from './buildIndex';
 
 export default class MyMocPlugin extends Plugin {
@@ -122,6 +128,7 @@ export default class MyMocPlugin extends Plugin {
 	private async updateInEditor(editor: Editor, file: TFile) {
 		const content = editor.getValue();
 		if (!hasMarker(content, this.settings.marker)) return;
+		if (hasRecursiveMarker(content, this.settings.marker)) await this.recursiveThenReport(file);
 
 		const parent = file.parent ?? this.app.vault.getRoot();
 		const lines = buildIndex(await this.collectEntries(parent), file.path, this.settings);
@@ -141,6 +148,7 @@ export default class MyMocPlugin extends Plugin {
 	private async updateMocFile(file: TFile) {
 		const content = await this.app.vault.cachedRead(file);
 		if (!hasMarker(content, this.settings.marker)) return;
+		if (hasRecursiveMarker(content, this.settings.marker)) await this.recursiveThenReport(file);
 		const parent = file.parent ?? this.app.vault.getRoot();
 		await this.rewrite(file, await this.collectEntries(parent));
 
@@ -148,6 +156,68 @@ export default class MyMocPlugin extends Plugin {
 		// of its own. Adding a marker is a `modify`, which we do not subscribe to,
 		// so the folder one level up is queued explicitly.
 		this.queueParentOf(parent.path);
+	}
+
+	/** Runs the recursive pass and tells the user what happened. */
+	private async recursiveThenReport(file: TFile) {
+		const { created, skipped } = await this.runRecursivePass(file);
+		new Notice(
+			created > 0
+				? `MyMOC: created ${created} index ${created === 1 ? 'note' : 'notes'}` +
+					(skipped > 0 ? `, skipped ${skipped}` : '')
+				: 'MyMOC: nothing to create — subfolders already have indexes or are empty',
+		);
+	}
+
+	/**
+	 * One-off pass for `%% MOC+ %%`: creates an index in every subfolder below
+	 * the note. Deepest folders go first, so by the time a parent index is built
+	 * its children already have indexes to link to.
+	 */
+	private async runRecursivePass(file: TFile): Promise<{ created: number; skipped: number }> {
+		const parent = file.parent ?? this.app.vault.getRoot();
+		const nodes: FolderNode[] = [];
+
+		const walk = async (folder: TFolder): Promise<void> => {
+			for (const child of folder.children) {
+				if (!(child instanceof TFolder)) continue;
+				const targetName = `${this.settings.createdPrefix}${child.name}.md`;
+				nodes.push({
+					path: child.path,
+					name: child.name,
+					hasContent: child.children.some(
+						(c) =>
+							c instanceof TFolder ||
+							(c instanceof TFile && (c.extension === 'md' || c.extension === 'canvas')),
+					),
+					hasMoc: (await this.findMocIn(child)) !== null,
+					nameTaken: child.children.some((c) => c.name === targetName),
+				});
+				await walk(child);
+			}
+		};
+		await walk(parent);
+
+		const plan = planMocCreation(nodes, this.settings.createdPrefix);
+		let created = 0;
+		for (const item of [...plan].reverse()) {
+			const folder = this.app.vault.getAbstractFileByPath(item.folderPath);
+			if (!(folder instanceof TFolder)) continue;
+			const lines = buildIndex(
+				await this.collectEntries(folder),
+				item.path,
+				this.settings,
+			);
+			const body = [
+				startMarker(this.settings.marker),
+				...lines,
+				endMarker(this.settings.marker),
+				'',
+			].join('\n');
+			await this.app.vault.create(item.path, body);
+			created++;
+		}
+		return { created, skipped: nodes.length - created };
 	}
 
 	private async collectEntries(folder: TFolder): Promise<Entry[]> {
@@ -244,6 +314,22 @@ class MyMocSettingTab extends PluginSettingTab {
 				}),
 			);
 		}
+
+		new Setting(root)
+			.setName('Prefix for created notes')
+			.setDesc(
+				'Used by the %% MOC+ %% marker when it creates indexes in subfolders. ' +
+					'A leading dash keeps them together at the top of the file list.',
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder('-')
+					.setValue(this.plugin.settings.createdPrefix)
+					.onChange(async (value) => {
+						this.plugin.settings.createdPrefix = value;
+						await this.plugin.saveSettings();
+					}),
+			);
 
 		new Setting(root)
 			.setName('Reverse order')

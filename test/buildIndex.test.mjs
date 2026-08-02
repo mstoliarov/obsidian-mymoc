@@ -4,6 +4,8 @@ import {
 	buildIndex,
 	applyMocBlock,
 	hasMarker,
+	hasRecursiveMarker,
+	planMocCreation,
 	maskCode,
 	DEFAULT_SETTINGS,
 } from '../build/buildIndex.mjs';
@@ -147,4 +149,60 @@ test('развёрнутый блок обновляется, даже если 
 test('маскировка кода сохраняет длину текста', () => {
 	const content = 'a `%% MOC %%` b\n```\n%% MOC %%\n```\n';
 	assert.equal(maskCode(content).length, content.length);
+});
+
+// --- рекурсивный маркер %% MOC+ %% ---
+
+const node = (path, name, over = {}) => ({
+	path, name, hasContent: true, hasMoc: false, nameTaken: false, ...over,
+});
+
+test('папка с содержимым и без оглавления попадает в план', () => {
+	assert.deepEqual(planMocCreation([node('A/B', 'B')], '-'), [
+		{ path: 'A/B/-B.md', folderPath: 'A/B' },
+	]);
+});
+
+test('папка с уже существующим оглавлением пропускается', () => {
+	assert.deepEqual(planMocCreation([node('A/B', 'B', { hasMoc: true })], '-'), []);
+});
+
+test('занятое имя файла пропускается — существующее не перезаписываем', () => {
+	assert.deepEqual(planMocCreation([node('A/B', 'B', { nameTaken: true })], '-'), []);
+});
+
+test('пустая папка пропускается', () => {
+	assert.deepEqual(planMocCreation([node('A/B', 'B', { hasContent: false })], '-'), []);
+});
+
+test('вложенность обрабатывается на всех уровнях', () => {
+	const plan = planMocCreation(
+		[node('A/B', 'B'), node('A/B/C', 'C'), node('A/B/C/D', 'D')],
+		'-',
+	);
+	assert.deepEqual(plan.map((p) => p.path), [
+		'A/B/-B.md',
+		'A/B/C/-C.md',
+		'A/B/C/D/-D.md',
+	]);
+});
+
+test('префикс берётся из настроек', () => {
+	assert.equal(planMocCreation([node('A/B', 'B')], '_Index_of_')[0].path, 'A/B/_Index_of_B.md');
+});
+
+test('рекурсивный маркер отличается от обычного', () => {
+	assert.equal(hasRecursiveMarker('%% MOC+ %%', 'MOC'), true);
+	assert.equal(hasRecursiveMarker('%% MOC %%', 'MOC'), false);
+	assert.equal(hasRecursiveMarker('`%% MOC+ %%`', 'MOC'), false); // в коде не считается
+});
+
+test('обычный hasMarker распознаёт и рекурсивную форму', () => {
+	assert.equal(hasMarker('%% MOC+ %%', 'MOC'), true);
+});
+
+test('после прохода MOC+ схлопывается в обычный блок и больше не сработает', () => {
+	const out = applyMocBlock('текст\n%% MOC+ %%\nхвост', ['📄 [[A/Б|Б]]'], 'MOC');
+	assert.equal(out, 'текст\n%% MOC:start %%\n📄 [[A/Б|Б]]\n%% MOC:end %%\nхвост');
+	assert.equal(hasRecursiveMarker(out, 'MOC'), false);
 });

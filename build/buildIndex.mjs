@@ -2,7 +2,8 @@
 var DEFAULT_SETTINGS = {
   marker: "MOC",
   icons: { note: "\u{1F4C4}", canvas: "\u{1F3A8}", folder: "\u{1F5C2}\uFE0F" },
-  descending: false
+  descending: false,
+  createdPrefix: "-"
 };
 var stripExtension = (path) => path.replace(/\.md$/, "");
 var displayName = (name) => name.replace(/\.(md|canvas)$/, "");
@@ -37,7 +38,16 @@ var endMarker = (marker) => `%% ${marker}:end %%`;
 function hasMarker(content, marker) {
   const masked = maskCode(content);
   const m = escapeRegExp(marker);
-  return new RegExp(`%%\\s*${m}\\s*%%`).test(masked) || new RegExp(`%%\\s*${m}:start\\s*%%`).test(masked);
+  return new RegExp(`%%\\s*${m}\\+?\\s*%%`).test(masked) || new RegExp(`%%\\s*${m}:start\\s*%%`).test(masked);
+}
+function hasRecursiveMarker(content, marker) {
+  return new RegExp(`%%\\s*${escapeRegExp(marker)}\\+\\s*%%`).test(maskCode(content));
+}
+function planMocCreation(folders, prefix) {
+  return folders.filter((f) => f.hasContent && !f.hasMoc && !f.nameTaken).map((f) => ({
+    path: `${f.path}/${prefix}${f.name}.md`,
+    folderPath: f.path
+  }));
 }
 function applyMocBlock(content, lines, marker) {
   const masked = maskCode(content);
@@ -51,7 +61,7 @@ function applyMocBlock(content, lines, marker) {
     const updated = splice(expanded.index, expanded[0].length);
     return updated === content ? null : updated;
   }
-  const bare = new RegExp(`%%\\s*${m}\\s*%%`).exec(masked);
+  const bare = new RegExp(`%%\\s*${m}\\+?\\s*%%`).exec(masked);
   if (bare) return splice(bare.index, bare[0].length);
   return null;
 }
@@ -61,6 +71,8 @@ export {
   buildIndex,
   endMarker,
   hasMarker,
+  hasRecursiveMarker,
   maskCode,
+  planMocCreation,
   startMarker
 };

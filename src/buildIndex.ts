@@ -13,6 +13,8 @@ export interface Settings {
 	marker: string;
 	icons: Icons;
 	descending: boolean;
+	/** Prefix for files created by the recursive marker. */
+	createdPrefix: string;
 }
 
 /** One item of folder contents, as read from the vault by the wiring layer. */
@@ -30,7 +32,28 @@ export const DEFAULT_SETTINGS: Settings = {
 	marker: 'MOC',
 	icons: { note: '📄', canvas: '🎨', folder: '🗂️' },
 	descending: false,
+	createdPrefix: '-',
 };
+
+/** A subfolder as seen by the recursive planner. */
+export interface FolderNode {
+	/** Path from the vault root: `Projects/Notes/Archive` */
+	path: string;
+	name: string;
+	/** Holds notes, canvases or subfolders — empty folders get no index. */
+	hasContent: boolean;
+	/** Already contains a note carrying the marker. */
+	hasMoc: boolean;
+	/** A file with the target name already exists, whatever its contents. */
+	nameTaken: boolean;
+}
+
+export interface PlannedMoc {
+	/** Full path of the file to create. */
+	path: string;
+	/** Folder it indexes, used for the display name. */
+	folderPath: string;
+}
 
 const stripExtension = (path: string): string => path.replace(/\.md$/, '');
 
@@ -91,14 +114,36 @@ export const startMarker = (marker: string): string => `%% ${marker}:start %%`;
 export const endMarker = (marker: string): string => `%% ${marker}:end %%`;
 
 /**
- * Whether the text carries a marker: either bare `%% MOC %%` or an expanded block.
- * Markers inside code spans and code fences do not count — see maskCode.
+ * Whether the text carries a marker: bare `%% MOC %%`, recursive `%% MOC+ %%`,
+ * or an expanded block. Markers inside code spans and fences do not count.
  */
 export function hasMarker(content: string, marker: string): boolean {
 	const masked = maskCode(content);
 	const m = escapeRegExp(marker);
-	return new RegExp(`%%\\s*${m}\\s*%%`).test(masked)
+	return new RegExp(`%%\\s*${m}\\+?\\s*%%`).test(masked)
 		|| new RegExp(`%%\\s*${m}:start\\s*%%`).test(masked);
+}
+
+/** Whether the text asks for a one-off recursive pass: `%% MOC+ %%`. */
+export function hasRecursiveMarker(content: string, marker: string): boolean {
+	return new RegExp(`%%\\s*${escapeRegExp(marker)}\\+\\s*%%`).test(maskCode(content));
+}
+
+/**
+ * Decides which index files the recursive marker should create.
+ *
+ * Pure: takes a description of the subtree, returns a list of files. Every skip
+ * rule lives here rather than in the traversal, so the awkward cases — a folder
+ * that already has an index, a name already taken by an unrelated note — are
+ * covered by ordinary tests.
+ */
+export function planMocCreation(folders: FolderNode[], prefix: string): PlannedMoc[] {
+	return folders
+		.filter((f) => f.hasContent && !f.hasMoc && !f.nameTaken)
+		.map((f) => ({
+			path: `${f.path}/${prefix}${f.name}.md`,
+			folderPath: f.path,
+		}));
 }
 
 /**
@@ -126,7 +171,9 @@ export function applyMocBlock(content: string, lines: string[], marker: string):
 	}
 
 	// Bare marker: expand the first occurrence only, leave any others as they are.
-	const bare = new RegExp(`%%\\s*${m}\\s*%%`).exec(masked);
+	// `\+?` also consumes the recursive form, so %% MOC+ %% collapses into a plain
+	// block once its one-off pass is done and never fires again.
+	const bare = new RegExp(`%%\\s*${m}\\+?\\s*%%`).exec(masked);
 	if (bare) return splice(bare.index, bare[0].length);
 
 	return null;

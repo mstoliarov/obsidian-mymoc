@@ -2,9 +2,9 @@
 
 An Obsidian plugin that keeps folder tables of contents up to date.
 
-**It never creates files.** It only updates notes you have marked yourself. That single
-decision removes the need for include and exclude folder lists — what gets processed is
-defined by markers you place, not by settings you maintain.
+**It never creates files on its own.** It updates notes you have marked yourself, and
+creates index notes only when you explicitly ask with the recursive marker. What gets
+processed is defined by markers you place, not by folder lists you maintain.
 
 ## How it works
 
@@ -27,6 +27,19 @@ From then on the list updates itself whenever files and folders are added, remov
 renamed next to it. Anything you write **above or below** the block stays untouched —
 put your headings, notes and manual links there.
 
+### Indexing a whole tree at once
+
+Type `%% MOC+ %%` instead, and the plugin walks every subfolder below the note, creating
+an index note in each one. The file is named after its folder with a configurable prefix,
+`-Archive.md` by default.
+
+The marker then collapses into an ordinary block, so the pass happens **once**. Nothing
+is generated in the background afterwards — the created notes simply keep themselves up
+to date like any other index.
+
+Folders are skipped when they already contain an index, when a file of that name exists,
+or when they hold nothing but attachments. Existing files are never overwritten.
+
 ### Writing *about* the marker
 
 Wrap it in backticks — `` `%% MOC:start %%
@@ -44,7 +57,8 @@ leave it alone.
 
 |  | MyMOC | Zoottelkeeper | Waypoint |
 |---|---|---|---|
-| Creates index files on its own | no | yes, in every folder | no |
+| Creates index files unprompted | no | yes, in every folder | no |
+| Can create a whole tree on request | yes, `%% MOC+ %%` | — | no |
 | Index file name | any | folder name + prefix | must equal folder name |
 | Which folders are processed | those you mark | include/exclude lists | those you mark |
 
@@ -67,6 +81,7 @@ because generating files is not something the plugin does. And an index can be c
 | Setting | Default | Purpose |
 |---|---|---|
 | Marker word | `MOC` | change if `%% MOC %%` collides with something else |
+| Prefix for created notes | `-` | naming of notes made by `%% MOC+ %%` |
 | Icons | `📄` `🎨` `🗂️` | appearance of the three row types |
 | Reverse order | off | sort Z to A instead of A to Z |
 
