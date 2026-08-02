@@ -214,8 +214,8 @@ class MyMocSettingTab extends PluginSettingTab {
 		// а не только в таблице стилей, — так он не зависит от того,
 		// подхватился ли styles.css при установке.
 		const root = containerEl.createDiv({ cls: 'mymoc-settings' });
-		root.style.paddingLeft = '10px';
-		root.style.paddingRight = '10px';
+		root.style.paddingLeft = '30px';
+		root.style.paddingRight = '30px';
 
 		new Setting(root)
 			.setName('Marker word')

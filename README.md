@@ -29,7 +29,10 @@ put your headings, notes and manual links there.
 
 ### Writing *about* the marker
 
-Wrap it in backticks — `` `%% MOC %%` `` — and the plugin ignores it. The same goes for
+Wrap it in backticks — `` `%% MOC:start %%
+🗂️ docs
+📄 [[01_PROJECTS/VPS/mymoc/README.sync-conflict-20260802-135235-Q7SYFUK|README.sync-conflict-20260802-135235-Q7SYFUK]]
+%% MOC:end %%` `` — and the plugin ignores it. The same goes for
 fenced code blocks. Without this, any note documenting the plugin would turn itself into
 an index mid-sentence.
 
