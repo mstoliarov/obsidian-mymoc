@@ -1,0 +1,17 @@
+{
+  "name": "mymoc",
+  "version": "1.0.0",
+  "description": "Obsidian plugin: keeps folder tables of contents up to date",
+  "private": true,
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "test": "esbuild src/buildIndex.ts --bundle --format=esm --outfile=build/buildIndex.mjs --log-level=warning && node --test test/",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.25.0",
+    "obsidian": "^1.7.2",
+    "typescript": "^5.6.0"
+  }
+}
