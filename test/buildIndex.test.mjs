@@ -215,3 +215,18 @@ test('после прохода +MOC схлопывается в обычный 
 	assert.equal(out, 'текст\n%% MOC:start %%\n📄 [[A/Б|Б]]\n%% MOC:end %%\nхвост');
 	assert.equal(hasRecursiveMarker(out, 'MOC'), false);
 });
+
+test('рекурсивная форма строится из выбранного слова, а не из «MOC»', () => {
+	for (const word of ['MOC', 'ОГЛАВЛЕНИЕ', 'index', 'Карта']) {
+		assert.equal(hasMarker(`%% ${word} %%`, word), true, word);
+		assert.equal(hasRecursiveMarker(`%% +${word} %%`, word), true, word);
+		// чужое слово не должно перехватываться
+		assert.equal(hasRecursiveMarker('%% +ДРУГОЕ %%', word), false, word);
+	}
+});
+
+test('слово со спецсимволами регулярных выражений не ломает поиск', () => {
+	assert.equal(hasRecursiveMarker('%% +C++ %%', 'C++'), true);
+	assert.equal(hasMarker('%% C++ %%', 'C++'), true);
+	assert.equal(hasRecursiveMarker('%% +CXX %%', 'C++'), false);
+});

@@ -314,8 +314,9 @@ class MyMocSettingTab extends PluginSettingTab {
 		new Setting(root)
 			.setName('Marker word')
 			.setDesc(
-				'The plugin only updates notes containing %% WORD %%. ' +
-					'File name and folder do not matter.',
+				'The plugin updates notes containing %% WORD %% — file name and folder ' +
+					'do not matter. Use %% +WORD %% to create indexes throughout the ' +
+					'whole subtree in one pass.',
 			)
 			.addText((text) =>
 				text

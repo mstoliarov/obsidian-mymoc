@@ -27,6 +27,10 @@ From then on the list updates itself whenever files and folders are added, remov
 renamed next to it. Anything you write **above or below** the block stays untouched —
 put your headings, notes and manual links there.
 
+The word is yours to choose in settings. Set it to `Карта`, and the markers become
+`%% Карта %%` and `%% +Карта %%` — the recursive form always mirrors whatever word you
+picked.
+
 ### Indexing a whole tree at once
 
 Type `%% +MOC %%` instead, and the plugin walks every subfolder below the note, creating
@@ -85,7 +89,7 @@ because generating files is not something the plugin does. And an index can be c
 
 | Setting | Default | Purpose |
 |---|---|---|
-| Marker word | `MOC` | change if `%% MOC %%` collides with something else |
+| Marker word | `MOC` | any word you like — both `%% WORD %%` and `%% +WORD %%` follow it |
 | Prefix for created notes | `-` | naming of notes made by `%% +MOC %%` |
 | Icons | `📄` `🎨` `🗂️` | appearance of the three row types |
 | Reverse order | off | sort Z to A instead of A to Z |
