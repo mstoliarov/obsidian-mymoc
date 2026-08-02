@@ -214,8 +214,6 @@ class MyMocSettingTab extends PluginSettingTab {
 		// а не только в таблице стилей, — так он не зависит от того,
 		// подхватился ли styles.css при установке.
 		const root = containerEl.createDiv({ cls: 'mymoc-settings' });
-		root.style.paddingLeft = '30px';
-		root.style.paddingRight = '30px';
 
 		new Setting(root)
 			.setName('Marker word')
@@ -257,9 +255,19 @@ class MyMocSettingTab extends PluginSettingTab {
 				}),
 			);
 
+		// Отступ ставится внутри каждой строки настройки, а не вокруг колонки:
+		// прижат к краям именно текст внутри блоков. Через style, а не styles.css,
+		// чтобы не зависеть от того, доехала ли таблица стилей при установке.
+		root.querySelectorAll('.setting-item').forEach((el) => {
+			const item = el as HTMLElement;
+			item.style.paddingLeft = '30px';
+			item.style.paddingRight = '30px';
+		});
+
 		const version = root.createEl('p', {
 			text: `MyMOC v${this.plugin.manifest.version}`,
 		});
+		version.style.paddingLeft = '30px';
 		version.style.opacity = '0.5';
 		version.style.fontSize = 'var(--font-ui-smaller)';
 	}
