@@ -347,7 +347,7 @@ class MyMocSettingTab extends PluginSettingTab {
 		new Setting(root)
 			.setName('Prefix for created notes')
 			.setDesc(
-				'Used by the %% +MOC %% marker when it creates indexes in subfolders. ' +
+				'Used by the %% +WORD %% marker when it creates indexes in subfolders. ' +
 					'A leading dash keeps them together at the top of the file list.',
 			)
 			.addText((text) =>
